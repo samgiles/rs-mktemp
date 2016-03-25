@@ -1,7 +1,13 @@
 [package]
 name = "mktemp"
+description = "mktemp files and directories"
+homepage = "https://samgiles.github.io/rs-mktemp"
+documentation = "https://samgiles.github.io/rs-mktemp"
+repository = "https://github.com/samgiles/rs-mktemp"
 version = "0.1.0"
 authors = ["Sam Giles <sam.e.giles@gmail.com>"]
+keywords = ["mktemp", "temp", "file", "dir", "directory"]
+license = "MPL-2.0"
 
 [dependencies]
 uuid = "0.1.18"
