@@ -10,10 +10,11 @@
 //!
 //! ```
 //! use mktemp::Temp;
+//! use std::fs;
 //!
 //! {
-//!   let temp_file = Temp::new_file();
-//!   let file = try!(fs::File::open(temp_file));
+//!   let temp_file = Temp::new_file().unwrap();
+//!   assert!(fs::File::open(temp_file).is_ok());
 //! }
 //! // temp_file is cleaned from the fs here
 //! ```
@@ -28,7 +29,7 @@ use std::env::temp_dir;
 use uuid::Uuid;
 
 #[derive(Clone)]
-pub enum TempType {
+enum TempType {
     File,
     Dir,
 }
