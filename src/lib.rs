@@ -72,6 +72,20 @@ impl Temp {
         Ok(temp)
     }
 
+    /// Return this temporary file or directory as a PathBuf.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mktemp::Temp;
+    ///
+    /// let temp_dir = Temp::new_dir().unwrap();
+    /// let mut path_buf = temp_dir.to_path_buf();
+    /// ```
+    pub fn to_path_buf(&self) -> PathBuf {
+        PathBuf::from(&self.path)
+    }
+
     fn create_file(&self) -> io::Result<()> {
         fs::File::create(self).map(|_| ())
     }
