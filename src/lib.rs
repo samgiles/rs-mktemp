@@ -25,7 +25,6 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::{ Path, PathBuf };
-use std::env::temp_dir;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -41,11 +40,14 @@ pub struct Temp {
 }
 
 fn create_path() -> PathBuf {
-    let mut path = env::temp_dir();
+    create_path_in(env::temp_dir())
+}
+
+fn create_path_in(path: PathBuf) -> PathBuf {
+    let mut path = path;
     let dir_uuid = Uuid::new_v4();
 
     path.push(dir_uuid.to_simple_string());
-
     path
 }
 
@@ -58,6 +60,28 @@ impl Temp {
         };
 
         try!(temp.create_dir());
+        Ok(temp)
+    }
+
+    /// Create a new temporary directory in an existing directory
+    pub fn new_dir_in(directory: &Path) -> io::Result<Self> {
+        let temp = Temp {
+            path: create_path_in(directory.to_path_buf()),
+            _type: TempType::Dir
+        };
+
+        try!(temp.create_dir());
+        Ok(temp)
+    }
+
+    /// Create a new temporary file in an existing directory
+    pub fn new_file_in(directory: &Path) -> io::Result<Self> {
+        let temp = Temp {
+            path: create_path_in(directory.to_path_buf()),
+            _type: TempType::File
+        };
+
+        try!(temp.create_file());
         Ok(temp)
     }
 
@@ -125,6 +149,20 @@ impl Drop for Temp {
     }
 }
 
+#[test]
+fn it_should_create_file_in_dir() {
+    let in_dir;
+    {
+        let temp_dir = Temp::new_dir().unwrap();
+
+        in_dir = temp_dir.path.clone();
+
+        {
+            let temp_file = Temp::new_file_in(in_dir.as_path()).unwrap();
+            assert!(fs::metadata(temp_file).unwrap().is_file());
+        }
+    }
+}
 
 #[test]
 fn it_should_drop_file_out_of_scope() {
