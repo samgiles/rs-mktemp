@@ -7,6 +7,8 @@ directories where their lifetime is defined by the scope they exist in.
 
 Once the variable goes out of scope, the underlying file system resource is removed.
 
+See documentation for full API, and other use cases.
+
 # Example
 
 ```
@@ -18,6 +20,10 @@ use mktemp::Temp;
 }
 // temp_file is cleaned from the fs here
 ```
+
+# Contributors
+
+Special thanks to our contributors! [Contributors](https://github.com/samgiles/rs-mktemp/graphs/contributors)
 
 # License
 
