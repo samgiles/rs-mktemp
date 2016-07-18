@@ -37,6 +37,7 @@ enum TempType {
 pub struct Temp {
     path: PathBuf,
     _type: TempType,
+    _released: bool,
 }
 
 fn create_path() -> PathBuf {
@@ -56,7 +57,8 @@ impl Temp {
     pub fn new_dir() -> io::Result<Self> {
         let temp = Temp {
             path: create_path(),
-            _type: TempType::Dir
+            _type: TempType::Dir,
+            _released: false,
         };
 
         try!(temp.create_dir());
@@ -67,7 +69,8 @@ impl Temp {
     pub fn new_dir_in(directory: &Path) -> io::Result<Self> {
         let temp = Temp {
             path: create_path_in(directory.to_path_buf()),
-            _type: TempType::Dir
+            _type: TempType::Dir,
+            _released: false,
         };
 
         try!(temp.create_dir());
@@ -78,7 +81,8 @@ impl Temp {
     pub fn new_file_in(directory: &Path) -> io::Result<Self> {
         let temp = Temp {
             path: create_path_in(directory.to_path_buf()),
-            _type: TempType::File
+            _type: TempType::File,
+            _released: false,
         };
 
         try!(temp.create_file());
@@ -89,7 +93,8 @@ impl Temp {
     pub fn new_file() -> io::Result<Self> {
         let temp = Temp {
             path: create_path(),
-            _type: TempType::File
+            _type: TempType::File,
+            _released: false,
         };
 
         try!(temp.create_file());
@@ -108,6 +113,24 @@ impl Temp {
     /// ```
     pub fn to_path_buf(&self) -> PathBuf {
         PathBuf::from(&self.path)
+    }
+
+    /// Release ownership of the temporary file or directory.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mktemp::Temp;
+    /// let path_buf;
+    /// {
+    ///   let mut temp_dir = Temp::new_dir().unwrap();
+    ///   path_buf = temp_dir.to_path_buf();
+    ///   temp_dir.release();
+    /// }
+    /// assert!(path_buf.exists());
+    /// ```
+    pub fn release(&mut self) {
+      self._released = true;
     }
 
     fn create_file(&self) -> io::Result<()> {
@@ -138,13 +161,15 @@ impl AsRef<Path> for Temp {
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
-        let result = match self._type {
-            TempType::File => self.remove_file(),
-            TempType::Dir  => self.remove_dir(),
-        };
+        if !self._released {
+          let result = match self._type {
+              TempType::File => self.remove_file(),
+              TempType::Dir  => self.remove_dir(),
+          };
 
-        if let Err(e) = result {
-            panic!("Could not remove path {:?}: {}", self.path, e);
+          if let Err(e) = result {
+              panic!("Could not remove path {:?}: {}", self.path, e);
+          }
         }
     }
 }
@@ -196,4 +221,26 @@ fn it_should_drop_dir_out_of_scope() {
     } else {
         panic!("File was not removed");
     }
+}
+
+#[test]
+fn it_should_not_drop_released_file() {
+    let path_buf;
+    {
+        let mut temp_file = Temp::new_file().unwrap();
+        path_buf = temp_file.to_path_buf();
+        temp_file.release();
+    }
+    assert!(path_buf.exists());
+}
+
+#[test]
+fn it_should_not_drop_released_dir() {
+    let path_buf;
+    {
+        let mut temp_dir = Temp::new_dir().unwrap();
+        path_buf = temp_dir.to_path_buf();
+        temp_dir.release();
+    }
+    assert!(path_buf.exists());
 }
