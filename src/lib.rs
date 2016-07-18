@@ -232,6 +232,7 @@ fn it_should_not_drop_released_file() {
         temp_file.release();
     }
     assert!(path_buf.exists());
+    fs::remove_file(path_buf).unwrap();
 }
 
 #[test]
@@ -243,4 +244,5 @@ fn it_should_not_drop_released_dir() {
         temp_dir.release();
     }
     assert!(path_buf.exists());
+    fs::remove_dir_all(path_buf).unwrap();
 }
