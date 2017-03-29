@@ -24,7 +24,9 @@ extern crate uuid;
 use std::env;
 use std::fs;
 use std::io;
-use std::path::{ Path, PathBuf };
+#[cfg(unix)]
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -130,11 +132,19 @@ impl Temp {
     /// assert!(path_buf.exists());
     /// ```
     pub fn release(&mut self) {
-      self._released = true;
+        self._released = true;
     }
 
     fn create_file(&self) -> io::Result<()> {
-        fs::File::create(self).map(|_| ())
+        let mut builder = fs::OpenOptions::new();
+        builder.write(true)
+            .create_new(true);
+
+        #[cfg(unix)]
+        builder.mode(0o600);
+
+        builder.open(self)?;
+        Ok(())
     }
 
     fn remove_file(&self) -> io::Result<()> {
@@ -142,9 +152,13 @@ impl Temp {
     }
 
     fn create_dir(&self) -> io::Result<()> {
-        fs::DirBuilder::new()
-                       .recursive(true)
-                       .create(self)
+        let mut builder = fs::DirBuilder::new();
+        builder.recursive(true);
+
+        #[cfg(unix)]
+        builder.mode(0o700);
+
+        builder.create(self)
     }
 
     fn remove_dir(&self) -> io::Result<()> {
@@ -162,87 +176,120 @@ impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
         if !self._released {
-          let result = match self._type {
-              TempType::File => self.remove_file(),
-              TempType::Dir  => self.remove_dir(),
-          };
+            let result = match self._type {
+                TempType::File => self.remove_file(),
+                TempType::Dir => self.remove_dir(),
+            };
 
-          if let Err(e) = result {
-              panic!("Could not remove path {:?}: {}", self.path, e);
-          }
+            if let Err(e) = result {
+                panic!("Could not remove path {:?}: {}", self.path, e);
+            }
         }
     }
 }
 
-#[test]
-fn it_should_create_file_in_dir() {
-    let in_dir;
-    {
-        let temp_dir = Temp::new_dir().unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[cfg(unix)]
+    use std::os::unix::fs::MetadataExt;
 
-        in_dir = temp_dir.path.clone();
-
+    #[test]
+    fn it_should_create_file_in_dir() {
+        let in_dir;
         {
-            let temp_file = Temp::new_file_in(in_dir.as_path()).unwrap();
+            let temp_dir = Temp::new_dir().unwrap();
+
+            in_dir = temp_dir.path.clone();
+
+            {
+                let temp_file = Temp::new_file_in(in_dir.as_path()).unwrap();
+                assert!(fs::metadata(temp_file).unwrap().is_file());
+            }
+        }
+    }
+
+    #[test]
+    fn it_should_drop_file_out_of_scope() {
+        let path;
+        {
+            let temp_file = Temp::new_file().unwrap();
+
+            path = temp_file.path.clone();
             assert!(fs::metadata(temp_file).unwrap().is_file());
         }
-    }
-}
 
-#[test]
-fn it_should_drop_file_out_of_scope() {
-    let path;
-    {
+        if let Err(e) = fs::metadata(path) {
+            assert_eq!(e.kind(), io::ErrorKind::NotFound);
+        } else {
+            panic!("File was not removed");
+        }
+    }
+
+    #[test]
+    fn it_should_drop_dir_out_of_scope() {
+        let path;
+        {
+            let temp_file = Temp::new_dir().unwrap();
+
+            path = temp_file.path.clone();
+            assert!(fs::metadata(temp_file).unwrap().is_dir());
+        }
+
+        if let Err(e) = fs::metadata(path) {
+            assert_eq!(e.kind(), io::ErrorKind::NotFound);
+        } else {
+            panic!("File was not removed");
+        }
+    }
+
+    #[test]
+    fn it_should_not_drop_released_file() {
+        let path_buf;
+        {
+            let mut temp_file = Temp::new_file().unwrap();
+            path_buf = temp_file.to_path_buf();
+            temp_file.release();
+        }
+        assert!(path_buf.exists());
+        fs::remove_file(path_buf).unwrap();
+    }
+
+    #[test]
+    fn it_should_not_drop_released_dir() {
+        let path_buf;
+        {
+            let mut temp_dir = Temp::new_dir().unwrap();
+            path_buf = temp_dir.to_path_buf();
+            temp_dir.release();
+        }
+        assert!(path_buf.exists());
+        fs::remove_dir_all(path_buf).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn temp_file_only_readable_by_owner() {
         let temp_file = Temp::new_file().unwrap();
-
-        path = temp_file.path.clone();
-        assert!(fs::metadata(temp_file).unwrap().is_file());
+        let mode = fs::metadata(temp_file.as_ref()).unwrap().mode();
+        assert_eq!(0o600, mode & 0o777);
     }
 
-    if let Err(e) = fs::metadata(path) {
-        assert_eq!(e.kind(), io::ErrorKind::NotFound);
-    } else {
-        panic!("File was not removed");
-    }
-}
+    #[test]
+    #[cfg(unix)]
+    fn temp_dir_only_readable_by_owner() {
+        let test_dir = Temp::new_dir().unwrap();
+        let mut subdir = test_dir.as_ref().to_owned();
+        subdir.push("sub");
 
-#[test]
-fn it_should_drop_dir_out_of_scope() {
-    let path;
-    {
-        let temp_file = Temp::new_dir().unwrap();
-
-        path = temp_file.path.clone();
-        assert!(fs::metadata(temp_file).unwrap().is_dir());
+        let temp_dir = Temp::new_dir_in(&subdir).unwrap();
+        assert_dir_permissions(temp_dir.as_ref());
+        assert_dir_permissions(&subdir);
     }
 
-    if let Err(e) = fs::metadata(path) {
-        assert_eq!(e.kind(), io::ErrorKind::NotFound);
-    } else {
-        panic!("File was not removed");
+    #[cfg(unix)]
+    fn assert_dir_permissions(dir: &Path) {
+        let mode = fs::metadata(dir).unwrap().mode();
+        assert_eq!(0o700, mode & 0o777)
     }
-}
-
-#[test]
-fn it_should_not_drop_released_file() {
-    let path_buf;
-    {
-        let mut temp_file = Temp::new_file().unwrap();
-        path_buf = temp_file.to_path_buf();
-        temp_file.release();
-    }
-    assert!(path_buf.exists());
-    fs::remove_file(path_buf).unwrap();
-}
-
-#[test]
-fn it_should_not_drop_released_dir() {
-    let path_buf;
-    {
-        let mut temp_dir = Temp::new_dir().unwrap();
-        path_buf = temp_dir.to_path_buf();
-        temp_dir.release();
-    }
-    assert!(path_buf.exists());
-    fs::remove_dir_all(path_buf).unwrap();
 }
