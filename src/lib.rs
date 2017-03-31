@@ -298,12 +298,12 @@ mod tests {
 
         match Temp::new_file_in(&no_such_dir) {
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => (),
-            _ => panic!()
+            _ => panic!(),
         }
 
         match Temp::new_dir_in(&no_such_dir) {
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => (),
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }
