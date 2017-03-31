@@ -153,7 +153,6 @@ impl Temp {
 
     fn create_dir(&self) -> io::Result<()> {
         let mut builder = fs::DirBuilder::new();
-        builder.recursive(true);
 
         #[cfg(unix)]
         builder.mode(0o700);
@@ -278,17 +277,7 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn temp_dir_only_readable_by_owner() {
-        let test_dir = Temp::new_dir().unwrap();
-        let mut subdir = test_dir.as_ref().to_owned();
-        subdir.push("sub");
-
-        let temp_dir = Temp::new_dir_in(&subdir).unwrap();
-        assert_dir_permissions(temp_dir.as_ref());
-        assert_dir_permissions(&subdir);
-    }
-
-    #[cfg(unix)]
-    fn assert_dir_permissions(dir: &Path) {
+        let dir = Temp::new_dir().unwrap();
         let mode = fs::metadata(dir).unwrap().mode();
         assert_eq!(0o700, mode & 0o777)
     }
