@@ -57,49 +57,57 @@ fn create_path_in(path: PathBuf) -> PathBuf {
 impl Temp {
     /// Create a temporary directory.
     pub fn new_dir() -> io::Result<Self> {
+        let path = create_path();
+        Self::create_dir(&path)?;
+
         let temp = Temp {
-            path: create_path(),
+            path: path,
             _type: TempType::Dir,
             _released: false,
         };
 
-        try!(temp.create_dir());
         Ok(temp)
     }
 
     /// Create a new temporary directory in an existing directory
     pub fn new_dir_in(directory: &Path) -> io::Result<Self> {
+        let path = create_path_in(directory.to_path_buf());
+        Self::create_dir(&path)?;
+
         let temp = Temp {
-            path: create_path_in(directory.to_path_buf()),
+            path: path,
             _type: TempType::Dir,
             _released: false,
         };
 
-        try!(temp.create_dir());
         Ok(temp)
     }
 
     /// Create a new temporary file in an existing directory
     pub fn new_file_in(directory: &Path) -> io::Result<Self> {
+        let path = create_path_in(directory.to_path_buf());
+        Self::create_file(&path)?;
+
         let temp = Temp {
-            path: create_path_in(directory.to_path_buf()),
+            path: path,
             _type: TempType::File,
             _released: false,
         };
 
-        try!(temp.create_file());
         Ok(temp)
     }
 
     /// Create a temporary file.
     pub fn new_file() -> io::Result<Self> {
+        let path = create_path();
+        Self::create_file(&path)?;
+
         let temp = Temp {
-            path: create_path(),
+            path: path,
             _type: TempType::File,
             _released: false,
         };
 
-        try!(temp.create_file());
         Ok(temp)
     }
 
@@ -135,7 +143,7 @@ impl Temp {
         self._released = true;
     }
 
-    fn create_file(&self) -> io::Result<()> {
+    fn create_file(path: &Path) -> io::Result<()> {
         let mut builder = fs::OpenOptions::new();
         builder.write(true)
             .create_new(true);
@@ -143,7 +151,7 @@ impl Temp {
         #[cfg(unix)]
         builder.mode(0o600);
 
-        builder.open(self)?;
+        builder.open(path)?;
         Ok(())
     }
 
@@ -151,13 +159,13 @@ impl Temp {
         fs::remove_file(self)
     }
 
-    fn create_dir(&self) -> io::Result<()> {
+    fn create_dir(path: &Path) -> io::Result<()> {
         let mut builder = fs::DirBuilder::new();
 
         #[cfg(unix)]
         builder.mode(0o700);
 
-        builder.create(self)
+        builder.create(path)
     }
 
     fn remove_dir(&self) -> io::Result<()> {
@@ -280,5 +288,22 @@ mod tests {
         let dir = Temp::new_dir().unwrap();
         let mode = fs::metadata(dir).unwrap().mode();
         assert_eq!(0o700, mode & 0o777)
+    }
+
+    #[test]
+    fn target_dir_must_exist() {
+        let temp_dir = Temp::new_dir().unwrap();
+        let mut no_such_dir = temp_dir.as_ref().to_owned();
+        no_such_dir.push("no_such_dir");
+
+        match Temp::new_file_in(&no_such_dir) {
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => (),
+            _ => panic!()
+        }
+
+        match Temp::new_dir_in(&no_such_dir) {
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => (),
+            _ => panic!()
+        }
     }
 }
