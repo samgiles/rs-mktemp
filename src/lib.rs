@@ -38,8 +38,8 @@ enum TempType {
 #[derive(Clone)]
 pub struct Temp {
     path: PathBuf,
-    _type: TempType,
-    _released: bool,
+    temp_type: TempType,
+    released: bool,
 }
 
 fn create_path() -> PathBuf {
@@ -62,8 +62,8 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::Dir,
-            _released: false,
+            temp_type: TempType::Dir,
+            released: false,
         };
 
         Ok(temp)
@@ -76,8 +76,8 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::Dir,
-            _released: false,
+            temp_type: TempType::Dir,
+            released: false,
         };
 
         Ok(temp)
@@ -90,8 +90,8 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::File,
-            _released: false,
+            temp_type: TempType::File,
+            released: false,
         };
 
         Ok(temp)
@@ -104,8 +104,8 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::File,
-            _released: false,
+            temp_type: TempType::File,
+            released: false,
         };
 
         Ok(temp)
@@ -140,7 +140,7 @@ impl Temp {
     /// assert!(path_buf.exists());
     /// ```
     pub fn release(&mut self) {
-        self._released = true;
+        self.released = true;
     }
 
     fn create_file(path: &Path) -> io::Result<()> {
@@ -182,8 +182,8 @@ impl AsRef<Path> for Temp {
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
-        if !self._released {
-            let result = match self._type {
+        if !self.released {
+            let result = match self.temp_type {
                 TempType::File => self.remove_file(),
                 TempType::Dir => self.remove_dir(),
             };
