@@ -36,11 +36,18 @@ enum TempType {
 }
 
 #[derive(Clone)]
+pub enum PanicOption {
+    Never,
+    NotOnNotFound,
+    AllErrors,
+}
+
+#[derive(Clone)]
 pub struct Temp {
     path: PathBuf,
     temp_type: TempType,
     released: bool,
-    panic_on_not_found: bool,
+    panic_option: PanicOption,
 }
 
 fn create_path() -> PathBuf {
@@ -90,7 +97,7 @@ impl Temp {
             path,
             temp_type,
             released: false,
-            panic_on_not_found: true,
+            panic_option: PanicOption::AllErrors,
         }
     }
 
@@ -126,27 +133,26 @@ impl Temp {
         self.released = true;
     }
 
-    /// Set if the `Drop` implementation should panic if the file does not exists.
+    /// Set how the `Drop` implementation should handle errors in the remove operation.
     ///
     /// By default the `Drop` implementation on `Temp` panics if removing the file/directory
     /// failed. It will panic even if the removal failed because the file was already deleted.
-    /// This method controls if dropping a `Temp` pointing to a path that does not exist should
-    /// panic or not.
+    /// This method allows changing what errors trigger a panic.
     ///
     /// # Examples
     ///
     /// ```
-    /// use mktemp::Temp;
+    /// use mktemp::{self, Temp};
     /// use std::fs;
     /// {
     ///   let mut temp_dir = Temp::new_file().unwrap();
     ///   fs::remove_file(temp_dir.to_path_buf());
-    ///   temp_dir.panic_on_not_found(false);
+    ///   temp_dir.set_panic_option(mktemp::PanicOption::NotOnNotFound);
     /// }
     /// // It will survive until here only because we configure it to not panic.
     /// ```
-    pub fn panic_on_not_found(&mut self, should_panic: bool) {
-        self.panic_on_not_found = should_panic;
+    pub fn set_panic_option(&mut self, panic_option: PanicOption) {
+        self.panic_option = panic_option;
     }
 
     fn create_file(path: &Path) -> io::Result<()> {
@@ -195,8 +201,10 @@ impl Drop for Temp {
             };
 
             if let Err(e) = result {
-                if e.kind() != io::ErrorKind::NotFound || self.panic_on_not_found {
-                    panic!("Could not remove path {:?}: {}", self.path, e);
+                match self.panic_option {
+                    PanicOption::Never => (),
+                    PanicOption::NotOnNotFound if e.kind() == io::ErrorKind::NotFound => (),
+                    _ => panic!("Could not remove path {:?}: {}", self.path, e),
                 }
             }
         }
@@ -270,7 +278,7 @@ mod tests {
     #[test]
     fn it_should_not_panic_on_drop_non_existing_file() {
         let mut temp_file = Temp::new_file().unwrap();
-        temp_file.panic_on_not_found(false);
+        temp_file.set_panic_option(PanicOption::NotOnNotFound);
         let path = temp_file.to_path_buf();
         fs::remove_file(path).unwrap();
     }
