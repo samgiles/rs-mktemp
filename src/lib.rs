@@ -59,56 +59,37 @@ impl Temp {
     pub fn new_dir() -> io::Result<Self> {
         let path = create_path();
         Self::create_dir(&path)?;
-
-        let temp = Temp {
-            path: path,
-            temp_type: TempType::Dir,
-            released: false,
-        };
-
-        Ok(temp)
+        Ok(Self::new(path, TempType::Dir))
     }
 
     /// Create a new temporary directory in an existing directory
     pub fn new_dir_in(directory: &Path) -> io::Result<Self> {
         let path = create_path_in(directory.to_path_buf());
         Self::create_dir(&path)?;
-
-        let temp = Temp {
-            path: path,
-            temp_type: TempType::Dir,
-            released: false,
-        };
-
-        Ok(temp)
+        Ok(Self::new(path, TempType::Dir))
     }
 
     /// Create a new temporary file in an existing directory
     pub fn new_file_in(directory: &Path) -> io::Result<Self> {
         let path = create_path_in(directory.to_path_buf());
         Self::create_file(&path)?;
-
-        let temp = Temp {
-            path: path,
-            temp_type: TempType::File,
-            released: false,
-        };
-
-        Ok(temp)
+        Ok(Self::new(path, TempType::File))
     }
 
     /// Create a temporary file.
     pub fn new_file() -> io::Result<Self> {
         let path = create_path();
         Self::create_file(&path)?;
+        Ok(Self::new(path, TempType::File))
+    }
 
-        let temp = Temp {
-            path: path,
-            temp_type: TempType::File,
+    /// Internal helper constructor
+    fn new(path: PathBuf, temp_type: TempType) -> Self {
+        Temp {
+            path,
+            temp_type,
             released: false,
-        };
-
-        Ok(temp)
+        }
     }
 
     /// Return this temporary file or directory as a PathBuf.
