@@ -250,6 +250,15 @@ mod tests {
         }
     }
 
+
+    #[test]
+    #[should_panic]
+    fn it_should_panic_on_drop_non_existing_file() {
+        let temp_file = Temp::new_file().unwrap();
+        let path = temp_file.to_path_buf();
+        fs::remove_file(path).unwrap();
+    }
+
     #[test]
     fn it_should_not_drop_released_file() {
         let path_buf;
