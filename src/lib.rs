@@ -40,6 +40,7 @@ pub struct Temp {
     path: PathBuf,
     temp_type: TempType,
     released: bool,
+    panic_on_not_found: bool,
 }
 
 fn create_path() -> PathBuf {
@@ -89,6 +90,7 @@ impl Temp {
             path,
             temp_type,
             released: false,
+            panic_on_not_found: true,
         }
     }
 
@@ -122,6 +124,29 @@ impl Temp {
     /// ```
     pub fn release(&mut self) {
         self.released = true;
+    }
+
+    /// Set if the `Drop` implementation should panic if the file does not exists.
+    ///
+    /// By default the `Drop` implementation on `Temp` panics if removing the file/directory
+    /// failed. It will panic even if the removal failed because the file was already deleted.
+    /// This method controls if dropping a `Temp` pointing to a path that does not exist should
+    /// panic or not.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mktemp::Temp;
+    /// use std::fs;
+    /// {
+    ///   let mut temp_dir = Temp::new_file().unwrap();
+    ///   fs::remove_file(temp_dir.to_path_buf());
+    ///   temp_dir.panic_on_not_found(false);
+    /// }
+    /// // It will survive until here only because we configure it to not panic.
+    /// ```
+    pub fn panic_on_not_found(&mut self, should_panic: bool) {
+        self.panic_on_not_found = should_panic;
     }
 
     fn create_file(path: &Path) -> io::Result<()> {
@@ -170,7 +195,9 @@ impl Drop for Temp {
             };
 
             if let Err(e) = result {
-                panic!("Could not remove path {:?}: {}", self.path, e);
+                if e.kind() != io::ErrorKind::NotFound || self.panic_on_not_found {
+                    panic!("Could not remove path {:?}: {}", self.path, e);
+                }
             }
         }
     }
@@ -236,6 +263,14 @@ mod tests {
     #[should_panic]
     fn it_should_panic_on_drop_non_existing_file() {
         let temp_file = Temp::new_file().unwrap();
+        let path = temp_file.to_path_buf();
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn it_should_not_panic_on_drop_non_existing_file() {
+        let mut temp_file = Temp::new_file().unwrap();
+        temp_file.panic_on_not_found(false);
         let path = temp_file.to_path_buf();
         fs::remove_file(path).unwrap();
     }
