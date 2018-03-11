@@ -10,4 +10,4 @@ keywords      = ["mktemp", "temp", "file", "dir", "directory"]
 license       = "MPL-2.0"
 
 [dependencies]
-uuid = { version = "0.4.0", features = ["v4"] }
+uuid = { version = "0.6", features = ["v4"] }
