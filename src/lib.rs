@@ -133,12 +133,12 @@ impl Temp {
     /// }
     /// assert!(path_buf.exists());
     /// ```
-    pub fn release(mut self) {
-        use std::mem::forget;
-        use std::ptr::drop_in_place;
+    pub fn release(self) -> PathBuf {
+        use std::mem::{forget, transmute_copy};
 
-        unsafe { drop_in_place(&mut self.path as *mut _) };
+        let path = unsafe { transmute_copy(&self.path) };
         forget(self);
+        path
     }
 
     fn create_file(path: &Path) -> io::Result<()> {
@@ -260,8 +260,7 @@ mod tests {
         let path_buf;
         {
             let temp_file = Temp::new_file().unwrap();
-            path_buf = temp_file.to_path_buf();
-            temp_file.release();
+            path_buf = temp_file.release();
         }
         assert!(path_buf.exists());
         fs::remove_file(path_buf).unwrap();
@@ -272,8 +271,7 @@ mod tests {
         let path_buf;
         {
             let temp_dir = Temp::new_dir().unwrap();
-            path_buf = temp_dir.to_path_buf();
-            temp_dir.release();
+            path_buf = temp_dir.release();
         }
         assert!(path_buf.exists());
         fs::remove_dir_all(path_buf).unwrap();
