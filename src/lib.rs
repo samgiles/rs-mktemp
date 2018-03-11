@@ -27,6 +27,7 @@ use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
+use std::ops;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -168,6 +169,19 @@ impl AsRef<Path> for Temp {
     }
 }
 
+impl ops::Deref for Temp {
+    type Target = PathBuf;
+    fn deref(&self) -> &Self::Target {
+        &self.path
+    }
+}
+
+impl ops::DerefMut for Temp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.path
+    }
+}
+
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
@@ -306,8 +320,8 @@ mod tests {
     #[test]
     fn uninitialized_file() {
         let temp = Temp::new();
-        assert!(!temp.as_ref().exists());
+        assert!(!temp.exists());
         let _file = File::create(&temp);
-        assert!(temp.as_ref().exists());
+        assert!(temp.exists());
     }
 }
