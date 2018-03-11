@@ -101,7 +101,15 @@ impl Temp {
         let path = create_path();
 
         Temp {
-            path:      path,
+            path,
+        }
+    }
+
+    pub fn new_in(directory: &Path) -> Self {
+        let path = create_path_in(directory.to_path_buf());
+
+        Temp {
+            path
         }
     }
 
