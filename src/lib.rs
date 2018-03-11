@@ -32,7 +32,6 @@ use uuid::Uuid;
 #[derive(Clone)]
 pub struct Temp {
     path: PathBuf,
-    _released: bool,
 }
 
 fn create_path() -> PathBuf {
@@ -55,7 +54,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _released: false,
         };
 
         Ok(temp)
@@ -68,7 +66,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _released: false,
         };
 
         Ok(temp)
@@ -81,7 +78,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _released: false,
         };
 
         Ok(temp)
@@ -94,7 +90,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _released: false,
         };
 
         Ok(temp)
@@ -106,7 +101,6 @@ impl Temp {
 
         Temp {
             path:      path,
-            _released: false,
         }
     }
 
@@ -138,8 +132,12 @@ impl Temp {
     /// }
     /// assert!(path_buf.exists());
     /// ```
-    pub fn release(&mut self) {
-        self._released = true;
+    pub fn release(mut self) {
+        use std::mem::forget;
+        use std::ptr::drop_in_place;
+
+        unsafe { drop_in_place(&mut self.path as *mut _) };
+        forget(self);
     }
 
     fn create_file(path: &Path) -> io::Result<()> {
@@ -173,14 +171,12 @@ impl AsRef<Path> for Temp {
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
-        if !self._released {
-            if let Err(e) = if self.path.is_file() {
-                fs::remove_file(&self)
-            } else {
-                fs::remove_dir_all(&self)
-            } {
-                panic!("Could not remove path {:?}: {}", self.path, e);
-            }
+        if let Err(e) = if self.path.is_file() {
+            fs::remove_file(&self)
+        } else {
+            fs::remove_dir_all(&self)
+        } {
+            panic!("Could not remove path {:?}: {}", self.path, e);
         }
     }
 }
@@ -245,7 +241,7 @@ mod tests {
     fn it_should_not_drop_released_file() {
         let path_buf;
         {
-            let mut temp_file = Temp::new_file().unwrap();
+            let temp_file = Temp::new_file().unwrap();
             path_buf = temp_file.to_path_buf();
             temp_file.release();
         }
@@ -257,7 +253,7 @@ mod tests {
     fn it_should_not_drop_released_dir() {
         let path_buf;
         {
-            let mut temp_dir = Temp::new_dir().unwrap();
+            let temp_dir = Temp::new_dir().unwrap();
             path_buf = temp_dir.to_path_buf();
             temp_dir.release();
         }
