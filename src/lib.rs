@@ -324,4 +324,10 @@ mod tests {
         let _file = File::create(&temp);
         assert!(temp.exists());
     }
+
+    #[test]
+    fn uninitialized_no_panic_on_drop_with_release() {
+        let t = Temp::new();
+        t.release();
+    }
 }
