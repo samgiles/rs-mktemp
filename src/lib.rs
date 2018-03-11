@@ -190,7 +190,11 @@ impl Drop for Temp {
         } else {
             fs::remove_dir_all(&self)
         } {
-            panic!("Could not remove path {:?}: {}", self.path, e);
+            if ::std::thread::panicking() {
+                eprintln!("Could not remove path {:?}: {}", self.path, e);
+            } else {
+                panic!("Could not remove path {:?}: {}", self.path, e);
+            }
         }
     }
 }
