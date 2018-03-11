@@ -30,15 +30,8 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 #[derive(Clone)]
-enum TempType {
-    File,
-    Dir,
-}
-
-#[derive(Clone)]
 pub struct Temp {
     path: PathBuf,
-    _type: TempType,
     _released: bool,
 }
 
@@ -62,7 +55,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::Dir,
             _released: false,
         };
 
@@ -76,7 +68,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::Dir,
             _released: false,
         };
 
@@ -90,7 +81,6 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::File,
             _released: false,
         };
 
@@ -104,11 +94,20 @@ impl Temp {
 
         let temp = Temp {
             path: path,
-            _type: TempType::File,
             _released: false,
         };
 
         Ok(temp)
+    }
+
+    /// Create new uninitialized temporary path, i.e. a file or directory isn't created automatically
+    pub fn new() -> Self {
+        let path = create_path();
+
+        Temp {
+            path:      path,
+            _released: false,
+        }
     }
 
     /// Return this temporary file or directory as a PathBuf.
@@ -155,10 +154,6 @@ impl Temp {
         Ok(())
     }
 
-    fn remove_file(&self) -> io::Result<()> {
-        fs::remove_file(self)
-    }
-
     fn create_dir(path: &Path) -> io::Result<()> {
         let mut builder = fs::DirBuilder::new();
 
@@ -166,10 +161,6 @@ impl Temp {
         builder.mode(0o700);
 
         builder.create(path)
-    }
-
-    fn remove_dir(&self) -> io::Result<()> {
-        fs::remove_dir_all(self)
     }
 }
 
@@ -183,12 +174,11 @@ impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
         if !self._released {
-            let result = match self._type {
-                TempType::File => self.remove_file(),
-                TempType::Dir => self.remove_dir(),
-            };
-
-            if let Err(e) = result {
+            if let Err(e) = if self.path.is_file() {
+                fs::remove_file(&self)
+            } else {
+                fs::remove_dir_all(&self)
+            } {
                 panic!("Could not remove path {:?}: {}", self.path, e);
             }
         }
@@ -200,6 +190,7 @@ mod tests {
     use super::*;
     #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
+    use std::fs::File;
 
     #[test]
     fn it_should_create_file_in_dir() {
@@ -305,5 +296,22 @@ mod tests {
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => (),
             _ => panic!(),
         }
+    }
+
+    #[test]
+    fn uninitialized_panic_on_drop() {
+        use std::panic::catch_unwind;
+
+        assert!(catch_unwind(|| {
+            let _ = Temp::new();
+        }).is_err());
+    }
+
+    #[test]
+    fn uninitialized_file() {
+        let temp = Temp::new();
+        assert!(!temp.as_ref().exists());
+        let _file = File::create(&temp);
+        assert!(temp.as_ref().exists());
     }
 }
