@@ -61,8 +61,8 @@ impl Temp {
     }
 
     /// Create a new temporary directory in an existing directory
-    pub fn new_dir_in(directory: &Path) -> io::Result<Self> {
-        let path = create_path_in(directory.to_path_buf());
+    pub fn new_dir_in<P: AsRef<Path>>(directory: P) -> io::Result<Self> {
+        let path = create_path_in(directory.as_ref().to_path_buf());
         Self::create_dir(&path)?;
 
         let temp = Temp {
@@ -73,8 +73,8 @@ impl Temp {
     }
 
     /// Create a new temporary file in an existing directory
-    pub fn new_file_in(directory: &Path) -> io::Result<Self> {
-        let path = create_path_in(directory.to_path_buf());
+    pub fn new_file_in<P: AsRef<Path>>(directory: P) -> io::Result<Self> {
+        let path = create_path_in(directory.as_ref().to_path_buf());
         Self::create_file(&path)?;
 
         let temp = Temp {
@@ -105,8 +105,8 @@ impl Temp {
         }
     }
 
-    pub fn new_in(directory: &Path) -> Self {
-        let path = create_path_in(directory.to_path_buf());
+    pub fn new_in<P: AsRef<Path>>(directory: P) -> Self {
+        let path = create_path_in(directory.as_ref().to_path_buf());
 
         Temp {
             path
@@ -223,7 +223,7 @@ mod tests {
             in_dir = temp_dir.path.clone();
 
             {
-                let temp_file = Temp::new_file_in(in_dir.as_path()).unwrap();
+                let temp_file = Temp::new_file_in(in_dir).unwrap();
                 assert!(fs::metadata(temp_file).unwrap().is_file());
             }
         }
