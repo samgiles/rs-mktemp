@@ -97,7 +97,7 @@ impl Temp {
     }
 
     /// Create new uninitialized temporary path, i.e. a file or directory isn't created automatically
-    pub fn new() -> Self {
+    pub fn new_path() -> Self {
         let path = create_path();
 
         Temp {
@@ -105,7 +105,9 @@ impl Temp {
         }
     }
 
-    pub fn new_in<P: AsRef<Path>>(directory: P) -> Self {
+    /// Create a new uninitialized temporary path in an existing directory i.e. a file or directory
+    /// isn't created automatically
+    pub fn new_path_in<P: AsRef<Path>>(directory: P) -> Self {
         let path = create_path_in(directory.as_ref().to_path_buf());
 
         Temp {
@@ -323,13 +325,13 @@ mod tests {
         use std::panic::catch_unwind;
 
         assert!(catch_unwind(|| {
-            let _ = Temp::new();
+            let _ = Temp::new_path();
         }).is_err());
     }
 
     #[test]
     fn uninitialized_file() {
-        let temp = Temp::new();
+        let temp = Temp::new_path();
         assert!(!temp.exists());
         let _file = File::create(&temp);
         assert!(temp.exists());
@@ -337,7 +339,7 @@ mod tests {
 
     #[test]
     fn uninitialized_no_panic_on_drop_with_release() {
-        let t = Temp::new();
+        let t = Temp::new_path();
         t.release();
     }
 }
