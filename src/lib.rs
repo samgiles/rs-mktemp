@@ -36,10 +36,18 @@ enum TempType {
 }
 
 #[derive(Clone)]
+pub enum PanicOption {
+    Never,
+    NotOnNotFound,
+    AllErrors,
+}
+
+#[derive(Clone)]
 pub struct Temp {
     path: PathBuf,
-    _type: TempType,
-    _released: bool,
+    temp_type: TempType,
+    released: bool,
+    panic_option: PanicOption,
 }
 
 fn create_path() -> PathBuf {
@@ -59,56 +67,38 @@ impl Temp {
     pub fn new_dir() -> io::Result<Self> {
         let path = create_path();
         Self::create_dir(&path)?;
-
-        let temp = Temp {
-            path: path,
-            _type: TempType::Dir,
-            _released: false,
-        };
-
-        Ok(temp)
+        Ok(Self::new(path, TempType::Dir))
     }
 
     /// Create a new temporary directory in an existing directory
     pub fn new_dir_in(directory: &Path) -> io::Result<Self> {
         let path = create_path_in(directory.to_path_buf());
         Self::create_dir(&path)?;
-
-        let temp = Temp {
-            path: path,
-            _type: TempType::Dir,
-            _released: false,
-        };
-
-        Ok(temp)
+        Ok(Self::new(path, TempType::Dir))
     }
 
     /// Create a new temporary file in an existing directory
     pub fn new_file_in(directory: &Path) -> io::Result<Self> {
         let path = create_path_in(directory.to_path_buf());
         Self::create_file(&path)?;
-
-        let temp = Temp {
-            path: path,
-            _type: TempType::File,
-            _released: false,
-        };
-
-        Ok(temp)
+        Ok(Self::new(path, TempType::File))
     }
 
     /// Create a temporary file.
     pub fn new_file() -> io::Result<Self> {
         let path = create_path();
         Self::create_file(&path)?;
+        Ok(Self::new(path, TempType::File))
+    }
 
-        let temp = Temp {
-            path: path,
-            _type: TempType::File,
-            _released: false,
-        };
-
-        Ok(temp)
+    /// Internal helper constructor
+    fn new(path: PathBuf, temp_type: TempType) -> Self {
+        Temp {
+            path,
+            temp_type,
+            released: false,
+            panic_option: PanicOption::AllErrors,
+        }
     }
 
     /// Return this temporary file or directory as a PathBuf.
@@ -140,7 +130,29 @@ impl Temp {
     /// assert!(path_buf.exists());
     /// ```
     pub fn release(&mut self) {
-        self._released = true;
+        self.released = true;
+    }
+
+    /// Set how the `Drop` implementation should handle errors in the remove operation.
+    ///
+    /// By default the `Drop` implementation on `Temp` panics if removing the file/directory
+    /// failed. It will panic even if the removal failed because the file was already deleted.
+    /// This method allows changing what errors trigger a panic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mktemp::{self, Temp};
+    /// use std::fs;
+    /// {
+    ///   let mut temp_dir = Temp::new_file().unwrap();
+    ///   fs::remove_file(temp_dir.to_path_buf());
+    ///   temp_dir.set_panic_option(mktemp::PanicOption::NotOnNotFound);
+    /// }
+    /// // It will survive until here only because we configure it to not panic.
+    /// ```
+    pub fn set_panic_option(&mut self, panic_option: PanicOption) {
+        self.panic_option = panic_option;
     }
 
     fn create_file(path: &Path) -> io::Result<()> {
@@ -182,14 +194,18 @@ impl AsRef<Path> for Temp {
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
-        if !self._released {
-            let result = match self._type {
+        if !self.released {
+            let result = match self.temp_type {
                 TempType::File => self.remove_file(),
                 TempType::Dir => self.remove_dir(),
             };
 
             if let Err(e) = result {
-                panic!("Could not remove path {:?}: {}", self.path, e);
+                match self.panic_option {
+                    PanicOption::Never => (),
+                    PanicOption::NotOnNotFound if e.kind() == io::ErrorKind::NotFound => (),
+                    _ => panic!("Could not remove path {:?}: {}", self.path, e),
+                }
             }
         }
     }
@@ -248,6 +264,23 @@ mod tests {
         } else {
             panic!("File was not removed");
         }
+    }
+
+
+    #[test]
+    #[should_panic]
+    fn it_should_panic_on_drop_non_existing_file() {
+        let temp_file = Temp::new_file().unwrap();
+        let path = temp_file.to_path_buf();
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn it_should_not_panic_on_drop_non_existing_file() {
+        let mut temp_file = Temp::new_file().unwrap();
+        temp_file.set_panic_option(PanicOption::NotOnNotFound);
+        let path = temp_file.to_path_buf();
+        fs::remove_file(path).unwrap();
     }
 
     #[test]
