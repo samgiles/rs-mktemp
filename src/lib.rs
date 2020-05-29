@@ -195,10 +195,10 @@ impl ops::DerefMut for Temp {
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
-        if let Err(e) = if self.path.is_file() {
-            fs::remove_file(&self)
-        } else {
+        if let Err(e) = if self.path.is_dir() {
             fs::remove_dir_all(&self)
+        } else {
+            fs::remove_file(&self)
         } {
             if ::std::thread::panicking() {
                 eprintln!("Could not remove path {:?}: {}", self.path, e);
@@ -341,5 +341,15 @@ mod tests {
     fn uninitialized_no_panic_on_drop_with_release() {
         let t = Temp::new_path();
         t.release();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn unix_socket() {
+        let t = Temp::new_path();
+        println!("Path is {:?}", t.to_str());
+        let socket = std::os::unix::net::UnixListener::bind(t.to_str().unwrap());
+        drop(socket);
+        drop(t);
     }
 }
