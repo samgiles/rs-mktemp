@@ -4,10 +4,10 @@ description   = "mktemp files and directories"
 homepage      = "https://samgiles.github.io/rs-mktemp/mktemp"
 documentation = "https://samgiles.github.io/rs-mktemp/mktemp/struct.Temp.html"
 repository    = "https://github.com/samgiles/rs-mktemp"
-version       = "0.4.0"
+version       = "0.4.1"
 authors       = ["Sam Giles <sam.e.giles@gmail.com>"]
 keywords      = ["mktemp", "temp", "file", "dir", "directory"]
 license       = "MPL-2.0"
 
 [dependencies]
-uuid = { version = "0.7", features = ["v4"] }
+uuid = { version = "0.8", features = ["v4"] }
