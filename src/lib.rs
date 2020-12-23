@@ -195,17 +195,15 @@ impl ops::DerefMut for Temp {
 impl Drop for Temp {
     fn drop(&mut self) {
         // Drop is blocking (make non-blocking?)
-        if let Err(e) = if self.path.is_dir() {
+        if !self.path.exists() {
+            return;
+        }
+
+        let _result = if self.path.is_dir() {
             fs::remove_dir_all(&self)
         } else {
             fs::remove_file(&self)
-        } {
-            if ::std::thread::panicking() {
-                eprintln!("Could not remove path {:?}: {}", self.path, e);
-            } else {
-                panic!("Could not remove path {:?}: {}", self.path, e);
-            }
-        }
+        };
     }
 }
 
@@ -318,15 +316,6 @@ mod tests {
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => (),
             _ => panic!(),
         }
-    }
-
-    #[test]
-    fn uninitialized_panic_on_drop() {
-        use std::panic::catch_unwind;
-
-        assert!(catch_unwind(|| {
-            let _ = Temp::new_path();
-        }).is_err());
     }
 
     #[test]
