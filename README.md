@@ -15,7 +15,7 @@ See documentation for full API, and other use cases.
 
 # Example
 
-```
+```RUST
 use mktemp::Temp;
 
 {
