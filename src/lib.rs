@@ -53,7 +53,7 @@ impl Temp {
         let path = create_path();
         Self::create_dir(&path)?;
 
-        let temp = Temp { path: path };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -63,7 +63,7 @@ impl Temp {
         let path = create_path_in(directory.as_ref().to_path_buf());
         Self::create_dir(&path)?;
 
-        let temp = Temp { path: path };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -73,7 +73,7 @@ impl Temp {
         let path = create_path_in(directory.as_ref().to_path_buf());
         Self::create_file(&path)?;
 
-        let temp = Temp { path: path };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -83,7 +83,7 @@ impl Temp {
         let path = create_path();
         Self::create_file(&path)?;
 
-        let temp = Temp { path: path };
+        let temp = Temp { path };
 
         Ok(temp)
     }
