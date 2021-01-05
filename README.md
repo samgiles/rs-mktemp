@@ -1,6 +1,10 @@
 # mktemp
 
-[Documentation](https://samgiles.github.io/rs-mktemp/mktemp/struct.Temp.html "mktemp docs")
+[![crates.io](https://meritbadge.herokuapp.com/mktemp)](https://crates.io/crates/mktemp)
+[![Released API docs](https://docs.rs/mktemp/badge.svg)](https://docs.rs/mktemp)
+[![Crates.io](https://img.shields.io/crates/d/mktemp?color=blue)](https://crates.io/crates/mktemp)
+[![MPL licensed](https://img.shields.io/github/license/samgiles/rs-mktemp?color=blue)](./LICENSE)
+[![CI](https://github.com/samgiles/rs-mktemp/workflows/Stable%20Linux/badge.svg)](https://github.com/samgiles/rs-mktemp/actions?query=workflow%3A%22Stable+Linux%22)
 
 This module provides a simple way of creating temporary files and
 directories where their lifetime is defined by the scope they exist in.
