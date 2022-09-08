@@ -43,7 +43,7 @@ fn create_path_in(path: PathBuf) -> PathBuf {
     let mut path = path;
     let dir_uuid = Uuid::new_v4();
 
-    path.push(dir_uuid.to_simple().to_string());
+    path.push(dir_uuid.simple().to_string());
     path
 }
 
