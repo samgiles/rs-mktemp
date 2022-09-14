@@ -162,7 +162,7 @@ impl Temp {
 
 impl AsRef<Path> for Temp {
     fn as_ref(&self) -> &Path {
-        &self.path.as_path()
+        self.path.as_path()
     }
 }
 
