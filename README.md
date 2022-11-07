@@ -19,9 +19,8 @@ use mktemp::Temp;
 
 {
   let temp_file = Temp::new_file().unwrap();
-  let file = try!(fs::File::open(temp_file));
-}
-// temp_file is cleaned from the fs here
+  let file = fs::File::open(temp_file).unwrap();
+} // temp_file is cleaned from the fs here
 ```
 
 # Contributors
