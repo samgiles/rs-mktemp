@@ -1,6 +1,5 @@
 # mktemp
 
-[![crates.io](https://meritbadge.herokuapp.com/mktemp)](https://crates.io/crates/mktemp)
 [![Released API docs](https://docs.rs/mktemp/badge.svg)](https://docs.rs/mktemp)
 [![Crates.io](https://img.shields.io/crates/d/mktemp?color=blue)](https://crates.io/crates/mktemp)
 [![MPL licensed](https://img.shields.io/github/license/samgiles/rs-mktemp?color=blue)](./LICENSE)

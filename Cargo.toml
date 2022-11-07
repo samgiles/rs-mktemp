@@ -1,8 +1,8 @@
 [package]
 name          = "mktemp"
 description   = "mktemp files and directories"
-homepage      = "https://samgiles.github.io/rs-mktemp/mktemp"
-documentation = "https://samgiles.github.io/rs-mktemp/mktemp/struct.Temp.html"
+homepage      = "https://docs.rs/mktemp"
+documentation = "https://docs.rs/mktemp"
 repository    = "https://github.com/samgiles/rs-mktemp"
 version       = "0.5.0"
 authors       = ["Sam Giles <sam.e.giles@gmail.com>"]
