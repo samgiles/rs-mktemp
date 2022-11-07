@@ -24,13 +24,13 @@ extern crate uuid;
 use std::env;
 use std::fs;
 use std::io;
+use std::ops;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
-use std::ops;
 use uuid::Uuid;
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct Temp {
     path: PathBuf,
 }
@@ -43,7 +43,7 @@ fn create_path_in(path: PathBuf) -> PathBuf {
     let mut path = path;
     let dir_uuid = Uuid::new_v4();
 
-    path.push(dir_uuid.to_simple().to_string());
+    path.push(dir_uuid.simple().to_string());
     path
 }
 
@@ -53,9 +53,7 @@ impl Temp {
         let path = create_path();
         Self::create_dir(&path)?;
 
-        let temp = Temp {
-            path: path,
-        };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -65,9 +63,7 @@ impl Temp {
         let path = create_path_in(directory.as_ref().to_path_buf());
         Self::create_dir(&path)?;
 
-        let temp = Temp {
-            path: path,
-        };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -77,9 +73,7 @@ impl Temp {
         let path = create_path_in(directory.as_ref().to_path_buf());
         Self::create_file(&path)?;
 
-        let temp = Temp {
-            path: path,
-        };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -89,9 +83,7 @@ impl Temp {
         let path = create_path();
         Self::create_file(&path)?;
 
-        let temp = Temp {
-            path: path,
-        };
+        let temp = Temp { path };
 
         Ok(temp)
     }
@@ -100,9 +92,7 @@ impl Temp {
     pub fn new_path() -> Self {
         let path = create_path();
 
-        Temp {
-            path,
-        }
+        Temp { path }
     }
 
     /// Create a new uninitialized temporary path in an existing directory i.e. a file or directory
@@ -110,9 +100,7 @@ impl Temp {
     pub fn new_path_in<P: AsRef<Path>>(directory: P) -> Self {
         let path = create_path_in(directory.as_ref().to_path_buf());
 
-        Temp {
-            path
-        }
+        Temp { path }
     }
 
     /// Return this temporary file or directory as a PathBuf.
@@ -153,8 +141,7 @@ impl Temp {
 
     fn create_file(path: &Path) -> io::Result<()> {
         let mut builder = fs::OpenOptions::new();
-        builder.write(true)
-            .create_new(true);
+        builder.write(true).create_new(true);
 
         #[cfg(unix)]
         builder.mode(0o600);
@@ -175,7 +162,7 @@ impl Temp {
 
 impl AsRef<Path> for Temp {
     fn as_ref(&self) -> &Path {
-        &self.path.as_path()
+        self.path.as_path()
     }
 }
 
@@ -210,9 +197,9 @@ impl Drop for Temp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
     #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
-    use std::fs::File;
 
     #[test]
     fn it_should_create_file_in_dir() {
