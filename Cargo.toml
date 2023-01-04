@@ -1,13 +1,13 @@
 [package]
-name          = "mktemp"
-description   = "mktemp files and directories"
-homepage      = "https://docs.rs/mktemp"
+name = "mktemp"
+description = "mktemp files and directories"
+homepage = "https://docs.rs/mktemp"
 documentation = "https://docs.rs/mktemp"
-repository    = "https://github.com/samgiles/rs-mktemp"
-version       = "0.5.0"
-authors       = ["Sam Giles <sam.e.giles@gmail.com>"]
-keywords      = ["mktemp", "temp", "file", "dir", "directory"]
-license       = "MPL-2.0"
+repository = "https://github.com/samgiles/rs-mktemp"
+version = "0.5.1"
+authors = ["Sam Giles <sam.e.giles@gmail.com>"]
+keywords = ["mktemp", "temp", "file", "dir", "directory"]
+license = "MPL-2.0"
 
 [dependencies]
 uuid = { version = "~1.2", features = ["v4"] }
