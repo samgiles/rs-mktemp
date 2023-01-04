@@ -138,6 +138,22 @@ impl Temp {
         Temp { path }
     }
 
+    /// Create new uninitialized temporary path with extension, i.e. a file or directory isn't
+    /// created automatically
+    pub fn new_path_with_extension(extension: &str) -> Self {
+        let path = create_path_with_ext(extension);
+
+        Temp { path }
+    }
+
+    /// Create a new uninitialized temporary path with extension in an existing directory i.e. a file
+    /// or directory isn't created automatically
+    pub fn new_path_with_extension_in<P: AsRef<Path>>(directory: P, extension: &str) -> Self {
+        let path = create_path_with_ext_in(directory.as_ref().to_path_buf(), extension);
+
+        Temp { path }
+    }
+
     /// Return this temporary file or directory as a PathBuf.
     ///
     /// # Examples
