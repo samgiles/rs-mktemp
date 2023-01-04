@@ -39,11 +39,26 @@ fn create_path() -> PathBuf {
     create_path_in(env::temp_dir())
 }
 
+fn create_path_with_ext(extension: &str) -> PathBuf {
+    create_path_with_ext_in(env::temp_dir(), extension)
+}
+
 fn create_path_in(path: PathBuf) -> PathBuf {
+    // let mut path = path;
+    // let dir_uuid = Uuid::new_v4();
+
+    // path.push(dir_uuid.simple().to_string());
+    // path
+    create_path_with_ext_in(path, "")
+}
+
+fn create_path_with_ext_in(path: PathBuf, extension: &str) -> PathBuf {
     let mut path = path;
     let dir_uuid = Uuid::new_v4();
+    let ext = extension.strip_prefix('.').unwrap_or(extension);
 
     path.push(dir_uuid.simple().to_string());
+    path.set_extension(ext);
     path
 }
 
@@ -81,6 +96,31 @@ impl Temp {
     /// Create a temporary file.
     pub fn new_file() -> io::Result<Self> {
         let path = create_path();
+        Self::create_file(&path)?;
+
+        let temp = Temp { path };
+
+        Ok(temp)
+    }
+
+    /// Create a temporary file with a specified extension. `ext` can either be prefixed with '.'
+    /// or not.
+    pub fn new_file_with_extension(extension: &str) -> io::Result<Self> {
+        let path = create_path_with_ext(extension);
+        Self::create_file(&path)?;
+
+        let temp = Temp { path };
+
+        Ok(temp)
+    }
+
+    /// Create a temporary file with a specified extension in an existing directory. `ext` can
+    /// either be prefixed with '.' or not.
+    pub fn new_file_with_extension_in<P: AsRef<Path>>(
+        directory: P,
+        extension: &str,
+    ) -> io::Result<Self> {
+        let path = create_path_with_ext_in(directory.as_ref().to_path_buf(), extension);
         Self::create_file(&path)?;
 
         let temp = Temp { path };
@@ -197,9 +237,9 @@ impl Drop for Temp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
     #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
+    use std::{ffi::OsStr, fs::File};
 
     #[test]
     fn it_should_create_file_in_dir() {
@@ -211,6 +251,36 @@ mod tests {
 
             {
                 let temp_file = Temp::new_file_in(in_dir).unwrap();
+                assert!(fs::metadata(temp_file).unwrap().is_file());
+            }
+        }
+    }
+
+    #[test]
+    fn it_should_create_file_with_ext() {
+        let temp_file = Temp::new_file_with_extension("json").unwrap();
+        assert_eq!(&temp_file.extension(), &Some(OsStr::new("json")));
+        assert!(fs::metadata(temp_file).unwrap().is_file());
+    }
+
+    #[test]
+    fn it_should_create_file_with_ext_stripping_dot() {
+        let temp_file = Temp::new_file_with_extension(".json").unwrap();
+        assert_eq!(&temp_file.extension(), &Some(OsStr::new("json")));
+        assert!(fs::metadata(temp_file).unwrap().is_file());
+    }
+
+    #[test]
+    fn it_should_create_file_with_ext_in() {
+        let in_dir;
+        {
+            let temp_dir = Temp::new_dir().unwrap();
+
+            in_dir = temp_dir.path.clone();
+
+            {
+                let temp_file = Temp::new_file_with_extension_in(in_dir, "json").unwrap();
+                assert_eq!(&temp_file.extension(), &Some(OsStr::new("json")));
                 assert!(fs::metadata(temp_file).unwrap().is_file());
             }
         }
