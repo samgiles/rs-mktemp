@@ -44,11 +44,6 @@ fn create_path_with_ext(extension: &str) -> PathBuf {
 }
 
 fn create_path_in(path: PathBuf) -> PathBuf {
-    // let mut path = path;
-    // let dir_uuid = Uuid::new_v4();
-
-    // path.push(dir_uuid.simple().to_string());
-    // path
     create_path_with_ext_in(path, "")
 }
 
