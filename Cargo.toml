@@ -8,6 +8,7 @@ version       = "0.5.1"
 authors       = ["Sam Giles <sam.e.giles@gmail.com>"]
 keywords      = ["mktemp", "temp", "file", "dir", "directory"]
 license       = "MPL-2.0"
+rust-version  = "1.57.0"
 
 [dependencies]
 uuid = { version = "~1.4", features = ["v4"] }
