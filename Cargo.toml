@@ -1,7 +1,7 @@
 [package]
-name          = "mktemp"
-description   = "mktemp files and directories"
-homepage      = "https://docs.rs/mktemp"
+name = "mktemp"
+description = "mktemp files and directories"
+homepage = "https://docs.rs/mktemp"
 documentation = "https://docs.rs/mktemp"
 repository    = "https://github.com/samgiles/rs-mktemp"
 version       = "0.5.1"
