@@ -11,4 +11,4 @@ license       = "MPL-2.0"
 rust-version  = "1.57.0"
 
 [dependencies]
-uuid = { version = "~1.5", features = ["v4"] }
+uuid = { version = "~1.7", features = ["v4"] }
